@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move By · Boston street cleaning</title>
+<style>
+:root{
+  --concrete:#e7e4dc; --curb:#cbc6b9; --asphalt:#2a2d32; --lane:#383c43;
+  --sign:#fdfdf9; --ink:#1c1e22; --muted:#585c63; --rule:#c9c4b6;
+  --red:#c1202d; --amber:#f0b323; --green:#176c43; --navy:#0f3a5f; --grey:#6b6f76;
+  --font-head:"Franklin Gothic Medium","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --font-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--concrete);color:var(--ink);font:16px/1.45 var(--font-body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.app{max-width:1040px;margin:0 auto;padding:18px 16px 48px}
+
+/* masthead */
+.mast{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.brand-name{font:700 30px/1 var(--font-head);margin:0}
+.brand-sub{margin:3px 0 0;color:var(--muted);font-size:14px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 16px;border:2px solid var(--ink);border-radius:4px;background:var(--ink);color:#fff;font-weight:600;cursor:pointer;text-decoration:none}
+.btn:hover{background:#000}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:rgba(0,0,0,.07)}
+.btn.primary{background:var(--navy);border-color:var(--navy)}
+.btn.small{min-height:38px;padding:6px 12px;font-size:14px}
+.btn[disabled]{opacity:.5;cursor:default}
+
+/* status levels */
+.lvl-safe{--lvl:var(--green);--lvl-ink:#fff}
+.lvl-soon{--lvl:var(--amber);--lvl-ink:#2a1d00}
+.lvl-urgent,.lvl-now{--lvl:var(--red);--lvl-ink:#fff}
+.lvl-none{--lvl:var(--grey);--lvl-ink:#fff}
+
+/* car rail */
+.rail{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;margin-bottom:4px}
+.carchip{flex:none;display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px;border:2px solid var(--ink);border-radius:999px;background:var(--sign);cursor:pointer}
+.carchip.active{background:var(--ink);color:#fff}
+.carchip .dot{width:12px;height:12px;border-radius:50%;background:var(--lvl);border:2px solid #fff;box-shadow:0 0 0 1.5px var(--ink)}
+.carchip .cn{font-weight:700}
+.carchip .cdl{font-size:13px;opacity:.85}
+.carchip.add{border-style:dashed;background:transparent}
+
+/* layout */
+.grid{display:grid;gap:18px}
+.col{display:grid;gap:18px;align-content:start}
+@media(min-width:880px){.grid{grid-template-columns:1.12fr .88fr}}
+
+/* hero */
+.hero{background:var(--sign);border:3px solid var(--ink);border-radius:8px;overflow:hidden}
+.hero-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--lvl);color:var(--lvl-ink)}
+.chip{font:700 17px var(--font-head)}
+.carname{font-size:14px}
+.hero-body{padding:16px 14px 14px}
+.deadline{font:700 clamp(27px,6.4vw,40px)/1.07 var(--font-head);margin:0 0 6px}
+.nowrap{white-space:nowrap}
+.sub{margin:0 0 16px;color:var(--muted)}
+.hero-info{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.where p{margin:0}
+.where .street{font:700 22px/1.15 var(--font-head)}
+.where .meta{color:var(--muted);font-size:15px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+/* regulatory sign */
+.sign{flex:none;width:150px;padding:10px 8px;background:#fff;border:3px solid #111;border-radius:8px;box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px #111;text-align:center;font-family:var(--font-head);font-weight:700;line-height:1.1;color:#111}
+.sign .no{color:var(--red);font-size:21px}
+.sign .st{font-size:13px;margin:3px 0 6px}
+.sign .wk{font-size:17px}
+.sign .tm{font-size:17px}
+.sign .ss{font-size:11px;margin-top:6px}
+
+/* diagram */
+.diagram{background:var(--asphalt);border-radius:8px;overflow:hidden;color:#fff}
+.diagram svg{display:block;width:100%;height:auto}
+.carg{transition:transform .9s cubic-bezier(.3,.7,.2,1)}
+@media(prefers-reduced-motion:reduce){.carg{transition:none}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px 12px;font-size:14px;background:#1f2125}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:22px;height:14px;border-radius:2px;display:inline-block}
+.sw.hatch{background:repeating-linear-gradient(135deg,var(--red) 0 4px,#4b2327 4px 8px)}
+.sw.carsw{background:#f4f2ec;border:2px solid #14161a}
+
+/* plan */
+.plan h2,.dates h2{font:700 22px/1.1 var(--font-head);margin:0 0 10px}
+.from{margin:0 0 6px;padding-bottom:12px;border-bottom:2px solid var(--ink)}
+.opts{list-style:none;margin:0;padding:0}
+.opt{padding:14px 0;border-bottom:1px solid var(--rule)}
+.opt.sel{background:linear-gradient(90deg,rgba(15,58,95,.10),transparent);margin:0 -10px;padding:14px 10px}
+.opt h3{margin:0 0 4px;font:700 18px/1.2 var(--font-head)}
+.opt p{margin:4px 0;font-size:15px}
+.tag{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:3px;background:var(--navy);color:#fff;font:600 13px var(--font-body);vertical-align:2px}
+.warn{padding:8px 10px;border-left:4px solid var(--amber);background:#fbeeba;font-size:14.5px}
+.note{color:var(--muted);font-size:14px}
+.opt-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.dates ul{list-style:none;margin:0 0 12px;padding:0}
+.dates li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--rule)}
+.dates .rel{color:var(--muted);white-space:nowrap}
+.dates h3{margin:12px 0 4px;font-size:15px;color:var(--muted)}
+
+/* form */
+.form{background:var(--sign);border:3px solid var(--ink);border-radius:8px;padding:16px 14px;margin-bottom:18px}
+.form h2{font:700 24px/1.1 var(--font-head);margin:0 0 12px}
+.field{margin:0 0 14px}
+.field>label,.field>.lab{display:block;font-weight:600;margin-bottom:5px}
+.hint{color:var(--muted);font-size:14px;margin:4px 0 0}
+input[type=text],select,input[type=time]{width:100%;min-height:44px;padding:8px 10px;border:2px solid var(--ink);border-radius:4px;background:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.seg{display:flex}
+.seg button{flex:1;min-height:44px;border:2px solid var(--ink);background:#fff;cursor:pointer;font-weight:600}
+.seg button+button{border-left:0}
+.seg button:first-child{border-radius:4px 0 0 4px}
+.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.sugg{list-style:none;margin:4px 0 0;padding:0;border:2px solid var(--ink);border-radius:4px;background:#fff;max-height:240px;overflow:auto}
+.sugg button{display:block;width:100%;text-align:left;padding:10px;border:0;border-bottom:1px solid var(--rule);background:transparent;cursor:pointer}
+.sugg button:hover{background:#eef2f6}
+.sugg small{color:var(--muted)}
+.checks{display:flex;gap:8px;flex-wrap:wrap}
+.checks label{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:2px solid var(--ink);border-radius:4px;background:#fff;cursor:pointer}
+.found{padding:10px 12px;border-left:5px solid var(--green);background:#e1f1e7;font-size:15px}
+.miss{padding:10px 12px;border-left:5px solid var(--amber);background:#fbeeba;font-size:15px}
+.err{color:var(--red);font-weight:600;margin:8px 0 0}
+.msg{font-size:14.5px;color:var(--muted);margin:6px 0 0;min-height:1.4em}
+
+/* intro */
+.intro{background:var(--sign);border:3px solid var(--ink);border-radius:8px;padding:20px 16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.intro h1{font:700 clamp(28px,6vw,40px)/1.05 var(--font-head);margin:0 0 8px}
+.intro p{margin:0 0 14px;max-width:46ch;color:var(--muted)}
+
+footer{margin-top:26px;font-size:13.5px;color:var(--muted);max-width:78ch}
+footer p{margin:0 0 8px}
+footer a{color:var(--navy)}
+.badge{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:600;font-size:13px}
+.badge.live{background:#d3ead9;color:#0f4a2d}
+.badge.demo{background:#fbeeba;color:#5b3d00}
+.note{color:var(--muted);font-size:13.5px}
+.import{margin:10px 0 14px;padding:10px 14px;border:2px solid var(--ink);border-radius:6px;background:var(--sign);color:var(--ink)}
+.import summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+.import ol{margin:8px 0;padding-left:22px}
+.import input[type=file]{display:block;width:100%;min-height:44px;padding:8px 0}
+.msg.bad{color:var(--red);font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="mast">
+    <svg class="logo" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+      <rect x="2" y="2" width="40" height="40" rx="7" fill="#fff" stroke="#1c1e22" stroke-width="3"/>
+      <rect x="6" y="6" width="32" height="32" rx="4" fill="none" stroke="#1c1e22" stroke-width="1.5"/>
+      <path d="M13 29 L22 13 L31 29" fill="none" stroke="#c1202d" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M13 32 H31" stroke="#1c1e22" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h2 class="brand-name">Move By</h2>
+      <p class="brand-sub">Boston street cleaning, matched to where you parked</p>
+    </div>
+  </header>
+
+  <div id="rail"></div>
+  <section id="formRoot" class="form" hidden aria-label="Park a car"></section>
+  <main id="view" class="grid"></main>
+  <footer id="foot"></footer>
+</div>
+
+<script type="application/json" id="bundle">__BUNDLE__</script>
+<script>
+(() => {
+'use strict';
+
+/* ======================================================================
+   ENGINE: schedule parsing and date maths (pure functions, no DOM)
+   ====================================================================== */
+// <engine>
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS_KEYS  = ['sun','mon','tue','wed','thu','fri','sat'];
+const MONTHS     = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DIM        = [0,31,29,31,30,31,30,31,31,30,31,30,31];
+const ORD        = ['','1st','2nd','3rd','4th','5th'];
+const SUFFIX = {street:'st',avenue:'ave',road:'rd',boulevard:'blvd',place:'pl',drive:'dr',court:'ct',
+  square:'sq',terrace:'ter',parkway:'pkwy',lane:'ln',highway:'hwy',circle:'cir',saint:'st'};
+
+function normStreet(s){
+  return String(s == null ? '' : s).toLowerCase().replace(/[.,'\u2019]/g,'').replace(/\s+/g,' ').trim()
+    .split(' ').map(w => SUFFIX[w] || w).join(' ');
+}
+function seasonFor(district){ return /south end|beacon hill|north end/i.test(district || '') ? [3,12] : [4,11]; }
+
+function parseClock(v){
+  const t = String(v == null ? '' : v).trim().toLowerCase();
+  if(!t) return null;
+  let m = t.match(/^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(am|pm|a|p)?$/);
+  if(!m){
+    m = t.match(/^(\d{2})(\d{2})$/);
+    return m && +m[1] < 24 && +m[2] < 60 ? {h:+m[1], m:+m[2]} : null;
+  }
+  let h = +m[1]; const mi = m[2] ? +m[2] : 0; const ap = m[3];
+  if(ap){ const pm = ap[0] === 'p'; if(h === 12) h = pm ? 12 : 0; else if(pm) h += 12; }
+  return h > 23 || mi > 59 ? null : {h, m: mi};
+}
+function parseWeekday(v){
+  const m = String(v == null ? '' : v).toLowerCase().match(/\b(sun|mon|tue|wed|thu|fri|sat)/);
+  return m ? DAYS_KEYS.indexOf(m[1]) : null;
+}
+function parseWeeks(v){
+  const t = String(v == null ? '' : v).toLowerCase();
+  if(/every|all/.test(t)) return [1,2,3,4,5];
+  return [...new Set((t.match(/[1-5]/g) || []).map(Number))].sort();
+}
+/* "1st 3rd Mon 8am - 12pm"  ->  {weeks, days, start, end} */
+function parseScheduleText(text){
+  const t = String(text || '');
+  const weeks = /\bevery\b/i.test(t) ? [1,2,3,4,5]
+    : [...new Set([...t.matchAll(/\b([1-5])(?:st|nd|rd|th)\b/gi)].map(m => +m[1]))].sort();
+  const weekday = parseWeekday(t);
+  const tm = t.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+  if(!weeks.length || weekday == null || !tm) return null;
+  const start = parseClock(tm[1]), end = parseClock(tm[2]);
+  return start && end ? {weeks, days:[weekday], start, end} : null;
+}
+
+function mkRule(o){
+  return {street:o.street, key:normStreet(o.street), district:o.district || '', side:o.side,
+    section:o.section || '', weeks:o.weeks, days:o.days, start:o.start, end:o.end,
+    season:o.season || seasonFor(o.district)};
+}
+/* Validate anything that comes from storage or from the network before trusting it. */
+function sanitizeRule(r){
+  if(!r || typeof r !== 'object') return null;
+  const street = String(r.street || '').slice(0,80); if(!street) return null;
+  const side = ['odd','even','both'].includes(r.side) ? r.side : 'both';
+  const weeks = Array.isArray(r.weeks) ? [...new Set(r.weeks.map(Number).filter(n => n >= 1 && n <= 5))].sort() : [];
+  if(!weeks.length) return null;
+  const rawDays = Array.isArray(r.days) ? r.days : (r.weekday != null ? [r.weekday] : []);   // old saved cars used a single weekday
+  const days = [...new Set(rawDays.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort();
+  if(!days.length) return null;
+  const clk = c => c && Number.isInteger(c.h) && Number.isInteger(c.m) && c.h >= 0 && c.h < 24 && c.m >= 0 && c.m < 60 ? {h:c.h, m:c.m} : null;
+  const start = clk(r.start), end = clk(r.end); if(!start || !end) return null;
+  const season = Array.isArray(r.season) && r.season.length === 2 ? r.season.map(Number) : [4,11];
+  if(season.some(n => !(n >= 1 && n <= 12))) return null;
+  return {street, key:normStreet(street), district:String(r.district || '').slice(0,60), side,
+    section:String(r.section || '').slice(0,100), weeks, days, start, end, season};
+}
+
+/* One row of the City's Street Sweeping Schedules table -> one rule (or null if it can't be a parking rule).
+   Columns: st_name, dist_name, side, start_time, end_time, from, to, week_1..week_5,
+   sunday..saturday, every_day, year_round, north_end_pilot. */
+function recToRule(rec){
+  if(!rec || typeof rec !== 'object') return null;
+  const T = v => v === true || ['t','true','y','yes','1'].includes(String(v == null ? '' : v).trim().toLowerCase());
+  const street = String(rec.st_name || '').trim(); if(!street) return null;
+  const sr = String(rec.side || '').trim().toLowerCase();
+  const side = sr === '' || sr === 'both' ? 'both' : sr === 'odd' ? 'odd' : sr === 'even' ? 'even' : null;
+  if(!side) return null;                                   // medians, ramps, inbound/outbound lanes, parks...
+  const names = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const days = T(rec.every_day) ? [0,1,2,3,4,5,6] : names.map((n, i) => T(rec[n]) ? i : -1).filter(i => i >= 0);
+  const weeks = [1,2,3,4,5].filter(n => T(rec['week_' + n]));
+  const start = parseClock(rec.start_time); let end = parseClock(rec.end_time);
+  if(!days.length || !weeks.length || !start || !end) return null;
+  // The table has a few PM end times typed without the PM (12:00 to 04:00, 09:00 to 01:00)
+  if(end.h >= 1 && end.h <= 6 && start.h >= 8 && start.h <= 12 && end.h * 60 + end.m <= start.h * 60 + start.m) end = {h:end.h + 12, m:end.m};
+  const from = String(rec.from || '').trim(), to = String(rec.to || '').trim();
+  return sanitizeRule({street, district:String(rec.dist_name || '').trim(), side,
+    section: from && to ? `${from} \u2013 ${to}` : (from || to), weeks, days, start, end,
+    season: T(rec.year_round) ? [1,12] : T(rec.north_end_pilot) ? [3,12] : [4,11]});
+}
+
+/* Minimal CSV reader (handles quoted fields and line breaks inside quotes). Returns an array of {header: value}. */
+function parseCSV(text){
+  const rows = []; let row = [], cell = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){ if(c === '"'){ if(text[i + 1] === '"'){ cell += '"'; i++; } else q = false; } else cell += c; }
+    else if(c === '"') q = true;
+    else if(c === ',') { row.push(cell); cell = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && text[i + 1] === '\n') i++; row.push(cell); cell = ''; if(row.length > 1 || row[0] !== '') rows.push(row); row = []; }
+    else cell += c;
+  }
+  if(cell !== '' || row.length){ row.push(cell); rows.push(row); }
+  const head = (rows.shift() || []).map(x => x.replace(/^\uFEFF/, '').trim());
+  return rows.map(r => Object.fromEntries(head.map((hd, i) => [hd, r[i] == null ? '' : r[i]])));
+}
+/* Turn the City's records into the compact bundle format, and say what looks wrong with them (if anything). */
+function compileSchedule(recs){
+  const SIDE = {both:0, odd:1, even:2}, seasonCode = s => s[0] === 1 ? 2 : s[0] === 3 ? 1 : 0;
+  const dists = [], seen = new Set(), rows = [], streets = new Set();
+  const dropped = {otherSide:0, duplicate:0, unparsed:0};
+  let asOf = '';
+  for(const rec of recs){
+    const r = recToRule(rec);
+    if(!r){
+      const sr = String(rec.side || '').trim().toLowerCase();
+      if(['','both','odd','even'].includes(sr)) dropped.unparsed++; else dropped.otherSide++;
+      continue;
+    }
+    const sig = JSON.stringify([r.street, r.district, r.side, r.section, r.days, r.weeks, r.start, r.end, r.season]);
+    if(seen.has(sig)){ dropped.duplicate++; continue; }
+    seen.add(sig); streets.add(r.key);
+    let di = dists.indexOf(r.district); if(di < 0){ dists.push(r.district); di = dists.length - 1; }
+    rows.push([r.street, di, SIDE[r.side], r.section, r.start.h * 60 + r.start.m, r.end.h * 60 + r.end.m, r.days.join(''), r.weeks.join(''), seasonCode(r.season)]);
+    const ts = String(rec.timestamp || '').slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(ts) && ts > asOf) asOf = ts;
+  }
+  rows.sort((a, b) => a[0].localeCompare(b[0]) || a[3].localeCompare(b[3]));
+  const problems = [];
+  if(rows.length < 3000) problems.push(`only ${rows.length} rules (expected about 3,600)`);
+  if(streets.size < 1200) problems.push(`only ${streets.size} streets (expected about 1,500)`);
+  if(dists.length < 15) problems.push(`only ${dists.length} districts (expected about 22)`);
+  if(dropped.unparsed > recs.length * 0.03) problems.push(`${dropped.unparsed} rows couldn\u2019t be read, so the columns may have changed`);
+  return {dists, rows, asOf, streets:streets.size, dropped, problems};
+}
+
+function inSeason(m, s){ return s[0] <= s[1] ? (m >= s[0] && m <= s[1]) : (m >= s[0] || m <= s[1]); }
+
+/* Upcoming sweep windows for a rule, starting from a moment in time. */
+function occurrences(rule, from, limit = 3){
+  const out = [];
+  const d0 = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for(let i = 0; i <= 430 && out.length < limit; i++){
+    const day = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i);
+    if(!rule.days.includes(day.getDay())) continue;
+    if(!inSeason(day.getMonth() + 1, rule.season)) continue;
+    if(!rule.weeks.includes(Math.ceil(day.getDate() / 7))) continue;
+    const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), rule.start.h, rule.start.m);
+    const end   = new Date(day.getFullYear(), day.getMonth(), day.getDate(), rule.end.h, rule.end.m);
+    if(end <= start) end.setDate(end.getDate() + 1);
+    if(end <= from) continue;
+    out.push({start, end});
+  }
+  return out;
+}
+
+const flip = s => s === 'odd' ? 'even' : s === 'even' ? 'odd' : 'both';
+
+/* Boston alternates sides: 1st/3rd weeks on one side, 2nd/4th on the other. */
+function inferOpposite(rule){
+  if(rule.side === 'both') return null;
+  const w = rule.weeks.join('');
+  let weeks = null;
+  if(w === '13' || w === '135') weeks = [2,4];
+  else if(w === '24') weeks = [1,3];
+  if(!weeks) return null;
+  return Object.assign({}, rule, {side: flip(rule.side), weeks});
+}
+function findOpposite(rule, index){
+  if(rule.side === 'both') return null;
+  const cand = (index.get(rule.key) || []).filter(r => r.side === flip(rule.side) && r.district === rule.district && (!rule.section || r.section === rule.section));
+  const same = cand.find(r => r.start.h === rule.start.h && r.start.m === rule.start.m && r.end.h === rule.end.h && r.end.m === rule.end.m);
+  if(same || cand.length) return {rule:same || cand[0], inferred:false};
+  const inf = inferOpposite(rule);
+  return inf ? {rule:inf, inferred:true} : null;
+}
+
+function levelFor(next, now){
+  if(!next) return 'none';
+  if(now >= next.start && now < next.end) return 'now';
+  const h = (next.start - now) / 36e5;
+  return h <= 12 ? 'urgent' : h <= 48 ? 'soon' : 'safe';
+}
+
+/* The full "when and where" answer for one parked car. */
+function computePlan(car, now){
+  const upcoming = occurrences(car.rule, now, 4);
+  const next = upcoming[0] || null;
+  const level = levelFor(next, now);
+  let swap = null;
+  if(car.opp && next){
+    const o = car.opp.rule;
+    const first = occurrences(o, next.end, 1)[0] || null;        // first sweep after you'd vacate
+    const early = occurrences(o, now, 1)[0] || null;             // first sweep from today
+    swap = {rule:o, inferred:car.opp.inferred,
+      clearUntil: first ? first.start : null,
+      conflict: !!(first && first.start < next.end),
+      waitFor: early && early.start < next.start ? early : null,
+      otherUpcoming: occurrences(o, now, 3)};
+  }
+  return {next, upcoming, level, swap};
+}
+
+function haversine(lat1, lng1, lat2, lng2){
+  const R = 6371000, rad = x => x * Math.PI / 180;
+  const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* Streets near the car whose own schedule leaves it alone through the sweep. */
+function evaluateNearby(car, streets, index, now){
+  const next = occurrences(car.rule, now, 1)[0];
+  const mustCover = next ? next.end : now;
+  const best = new Map();
+  for(const s of streets){
+    if(s.key === car.rule.key) continue;
+    for(const r of (index.get(s.key) || [])){
+      const occ = occurrences(r, now, 1)[0] || null;
+      const safeUntil = occ ? occ.start : null;
+      if(safeUntil && safeUntil <= mustCover) continue;
+      const score = safeUntil ? safeUntil.getTime() : Infinity;
+      const prev = best.get(s.key);
+      if(!prev || score > prev.score) best.set(s.key, {rule:r, safeUntil, score, dist:s.dist, lat:s.lat, lng:s.lng});
+    }
+  }
+  return [...best.values()].sort((a, b) => (a.dist ?? 1e9) - (b.dist ?? 1e9) || b.score - a.score).slice(0, 5);
+}
+// </engine>
+
+/* ======================================================================
+   FORMATTING
+   ====================================================================== */
+const p2 = n => String(n).padStart(2,'0');
+const fmtDay  = d => d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+const fmtTime = d => d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+const clockLabel = c => (c.h % 12 || 12) + (c.m ? ':' + p2(c.m) : '') + (c.h < 12 ? 'AM' : 'PM');
+function weeksLabel(w){
+  if(w.length >= 5) return 'Every';
+  const l = w.map(n => ORD[n]);
+  return l.length <= 2 ? l.join(' & ') : l.slice(0,-1).join(', ') + ' & ' + l[l.length - 1];
+}
+function whenLabel(r){
+  if(r.days.length === 7) return 'Every day';
+  const d = r.days.map(x => DAYS_SHORT[x]).join(' & ');
+  return (r.weeks.length >= 5 ? 'Every' : weeksLabel(r.weeks)) + ' ' + d;
+}
+const ruleSig = r => [r.district, r.section, r.side, r.days.join(''), r.weeks.join(''), r.start.h * 60 + r.start.m, r.end.h * 60 + r.end.m].join('|');
+function ruleLabel(r){
+  return [r.district, r.section || 'whole street', `${whenLabel(r)} ${clockLabel(r.start)}\u2013${clockLabel(r.end)}`].filter(Boolean).join(' \u00b7 ') + (r.side === 'both' ? ' (both sides)' : '');
+}
+function seasonLabel(s){
+  return s[0] === 1 && s[1] === 12 ? 'Year-round' : `${MONTHS[s[0]]} 1 \u2013 ${MONTHS[s[1]]} ${s[1] === 2 ? 28 : DIM[s[1]]}`;
+}
+function dur(ms){
+  const m = Math.max(0, Math.round(ms / 60000));
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+  const pl = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  if(d >= 1) return pl(d,'day') + (h ? ', ' + pl(h,'hour') : '');
+  if(h >= 1) return pl(h,'hour') + (mi ? ', ' + pl(mi,'minute') : '');
+  return pl(mi,'minute');
+}
+function ago(ms){
+  const m = Math.floor(ms / 60000);
+  if(m < 1) return 'just now';
+  if(m < 60) return m + ' min ago';
+  if(m < 1440) return Math.floor(m / 60) + ' hr ago';
+  return Math.floor(m / 1440) + ' days ago';
+}
+const sideLabel = s => s === 'odd' ? 'Odd side (1, 3, 5\u2026)' : s === 'even' ? 'Even side (2, 4, 6\u2026)' : 'Both sides';
+const mapsLink = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+
+/* ======================================================================
+   DATA: live Analyze Boston feed, with sample fallback
+   ====================================================================== */
+const CKAN = 'https://data.boston.gov/api/3/action/datastore_search?resource_id=9fdbdcad-67c8-4b23-b6ec-861e77d56227&limit=10000';
+
+/* The City's full table, bundled at build time (see <script id="bundle">). Row layout:
+   [street, districtIndex, side(0 both/1 odd/2 even), block, startMinutes, endMinutes, days, weeks, season(0 Apr-Nov/1 Mar-Dec/2 all year)] */
+function decodeBundle(b){
+  if(!b || !Array.isArray(b.rows) || !Array.isArray(b.dists)) throw new Error('Unrecognised schedule file');
+  const SIDES = ['both','odd','even'], SEASONS = [[4,11],[3,12],[1,12]];
+  const rules = [];
+  for(const r of b.rows){
+    if(!Array.isArray(r)) continue;
+    const rule = sanitizeRule({street:r[0], district:b.dists[r[1]], side:SIDES[r[2]], section:r[3],
+      start:{h:Math.floor(r[4] / 60), m:r[4] % 60}, end:{h:Math.floor(r[5] / 60), m:r[5] % 60},
+      days:[...String(r[6])].map(Number), weeks:[...String(r[7])].map(Number), season:SEASONS[r[8]]});
+    if(rule) rules.push(rule);
+  }
+  return {rules, built:String(b.built || '').slice(0,10), asOf:String(b.asOf || '').slice(0,10)};
+}
+function loadBundle(){ return decodeBundle(JSON.parse(document.getElementById('bundle').textContent)); }
+
+async function fetchJSON(url, opts = {}, ms = 9000){
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  try{
+    const r = await fetch(url, Object.assign({}, opts, {signal:ac.signal}));
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+/* Update source 1: schedule.json rebuilt daily and published next to this page (same origin, so no CORS trouble). */
+async function loadSite(){
+  return decodeBundle(await fetchJSON('schedule.json', {cache:'no-store'}));
+}
+/* Update source 2: the City's open-data API directly (works only if the browser is allowed to call it). */
+async function loadLive(){
+  const j = await fetchJSON(CKAN);
+  const recs = j && j.result && Array.isArray(j.result.records) ? j.result.records : [];
+  const rules = recs.map(recToRule).filter(Boolean);
+  const stamps = recs.map(r => String(r.timestamp || '').slice(0,10)).filter(Boolean).sort();
+  return {rules, built:new Date().toISOString().slice(0,10), asOf:stamps[stamps.length - 1] || ''};
+}
+function buildIndex(rules){
+  const index = new Map();
+  for(const r of rules){ if(!index.has(r.key)) index.set(r.key, []); index.get(r.key).push(r); }
+  const names = [...index.values()].map(a => ({name:a[0].street, key:a[0].key, district:[...new Set(a.map(r => r.district).filter(Boolean))].slice(0,3).join(', ')}))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return {index, names};
+}
+async function nearbyStreets(lat, lng, radius = 450){
+  if(!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+  const q = `[out:json][timeout:15];way(around:${radius},${lat.toFixed(6)},${lng.toFixed(6)})["highway"]["name"];out tags center 80;`;
+  const j = await fetchJSON('https://overpass-api.de/api/interpreter',
+    {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data=' + encodeURIComponent(q)}, 14000);
+  const best = new Map();
+  for(const el of (j && j.elements) || []){
+    const name = el.tags && el.tags.name, c = el.center;
+    if(!name || !c || !Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
+    const key = normStreet(name), dist = haversine(lat, lng, c.lat, c.lon);
+    if(!best.has(key) || dist < best.get(key).dist) best.set(key, {key, name, dist, lat:c.lat, lng:c.lon});
+  }
+  return [...best.values()];
+}
+const inBoston = (lat, lng) => lat > 42.227 && lat < 42.400 && lng > -71.191 && lng < -70.986;
+
+/* ======================================================================
+   STATE + PERSISTENCE (window.storage; never localStorage)
+   ====================================================================== */
+const state = {
+  rules: [], index: new Map(), names: [], source: 'bundle', built: '', asOf: '', checkedAt: null, refreshFailed: false, refreshing: false, importMsg: '', importBad: false, importOpen: false,
+  cars: [], activeId: null, selOpt: null, animate: false,
+  nearby: {carId:null, status:'idle', items:[], note:''},
+  removeArmed: null, formMode: 'new', editId: null
+};
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const activeCar = () => state.cars.find(c => c.id === state.activeId) || null;
+
+function sanitizeCar(c){
+  if(!c || typeof c !== 'object') return null;
+  const rule = sanitizeRule(c.rule); if(!rule) return null;
+  const oppRule = c.opp ? sanitizeRule(c.opp.rule) : null;
+  return {
+    id: String(c.id || uid()).slice(0,64),
+    name: String(c.name || 'My car').slice(0,24),
+    rule, opp: oppRule ? {rule:oppRule, inferred:!!c.opp.inferred} : null,
+    lat: Number.isFinite(c.lat) ? c.lat : null, lng: Number.isFinite(c.lng) ? c.lng : null,
+    house: String(c.house || '').slice(0,12), savedAt: Number.isFinite(c.savedAt) ? c.savedAt : Date.now(),
+    manual: !!c.manual, notice: String(c.notice || '').slice(0,240)
+  };
+}
+/* Inside Claude the artifact storage API is used. In an ordinary browser it falls back to localStorage. */
+const store = {
+  async get(k){
+    try{
+      if(typeof window.storage !== 'undefined'){ const r = await window.storage.get(k); return r && r.value != null ? r.value : null; }
+      if(typeof localStorage !== 'undefined') return localStorage.getItem(k);
+    }catch(e){ /* missing key or storage blocked */ }
+    return null;
+  },
+  async set(k, v){
+    try{
+      if(typeof window.storage !== 'undefined'){ await window.storage.set(k, v); return true; }
+      if(typeof localStorage !== 'undefined'){ localStorage.setItem(k, v); return true; }
+    }catch(e){ console.error('Could not save', k, e); }
+    return false;
+  }
+};
+async function loadCars(){
+  try{
+    const raw = await store.get('cars-v1'); if(!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.map(sanitizeCar).filter(Boolean).slice(0,6) : [];
+  }catch(e){ return []; }
+}
+async function saveCars(){ await store.set('cars-v1', JSON.stringify(state.cars)); }
+
+/* ======================================================================
+   DOM HELPERS (text is always set via text nodes, never innerHTML)
+   ====================================================================== */
+const $ = id => document.getElementById(id);
+function h(tag, props, ...kids){
+  const el = document.createElement(tag);
+  for(const [k, v] of Object.entries(props || {})){
+    if(v == null || v === false) continue;
+    if(k === 'class') el.className = v;
+    else if(k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if(['value','checked','disabled','selected'].includes(k)) el[k] = v;
+    else el.setAttribute(k, v === true ? '' : String(v));
+  }
+  for(const kid of kids.flat()){ if(kid != null && kid !== false) el.append(kid); }
+  return el;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs, ...kids){
+  const el = document.createElementNS(SVGNS, tag);
+  for(const [k, v] of Object.entries(attrs || {})){ if(v != null) el.setAttribute(k, String(v)); }
+  for(const kid of kids.flat()){ if(kid != null && kid !== false) el.append(kid); }
+  return el;
+}
+
+/* ======================================================================
+   VIEW
+   ====================================================================== */
+function signEl(r){
+  return h('div', {class:'sign', role:'img', 'aria-label':`No parking, street cleaning, ${whenLabel(r)}, ${clockLabel(r.start)} to ${clockLabel(r.end)}`},
+    h('div', {class:'no'}, 'NO PARKING'),
+    h('div', {class:'st'}, 'STREET CLEANING'),
+    h('div', {class:'wk'}, whenLabel(r).toUpperCase()),
+    h('div', {class:'tm'}, `${clockLabel(r.start)}\u2013${clockLabel(r.end)}`),
+    h('div', {class:'ss'}, seasonLabel(r.season).toUpperCase()));
+}
+
+function renderRail(){
+  const rail = $('rail'); rail.replaceChildren();
+  if(!state.cars.length) return;
+  const now = new Date();
+  const wrap = h('div', {class:'rail', role:'tablist', 'aria-label':'Your cars'});
+  for(const c of state.cars){
+    const next = occurrences(c.rule, now, 1)[0] || null;
+    const active = c.id === state.activeId;
+    wrap.append(h('button', {class:`carchip lvl-${levelFor(next, now)}${active ? ' active' : ''}`, role:'tab', 'aria-selected':String(active),
+      onClick:() => { state.activeId = c.id; state.selOpt = null; state.removeArmed = null; render(); }},
+      h('span', {class:'dot'}), h('span', {class:'cn'}, c.name),
+      h('span', {class:'cdl'}, next ? `${DAYS_SHORT[next.start.getDay()]} ${clockLabel({h:next.start.getHours(), m:next.start.getMinutes()})}` : 'No sweep')));
+  }
+  if(state.cars.length < 6) wrap.append(h('button', {class:'carchip add', onClick:() => openForm('new')}, '+ Add a car'));
+  rail.append(wrap);
+}
+
+function heroEl(car, plan){
+  const now = new Date(), {next, level} = plan, r = car.rule;
+  const chip = level === 'safe' ? (() => { const d = Math.floor((next.start - now) / 864e5); return d >= 1 ? `Clear for ${d} day${d === 1 ? '' : 's'}` : 'Clear for now'; })()
+    : level === 'soon' ? 'Move soon' : level === 'urgent' ? 'Move today' : level === 'now' ? 'Sweeping now' : 'Nothing scheduled';
+  let head, sub;
+  if(!next){
+    head = h('h1', {class:'deadline'}, 'No sweeping scheduled here');
+    sub = h('p', {class:'sub'}, 'Nothing is due for this spot in the next year. Check the posted sign to be sure.');
+  } else if(level === 'now'){
+    head = h('h1', {class:'deadline'}, 'Sweeping is underway');
+    sub = h('p', {class:'sub'}, `Cleaning runs until ${fmtTime(next.end)}. Move your car now.`);
+  } else {
+    head = h('h1', {class:'deadline'}, 'Move by ', h('span', {class:'nowrap'}, fmtDay(next.start)), ' before ', h('span', {class:'nowrap'}, fmtTime(next.start)));
+    const off = (next.start - now) > 21 * 864e5;
+    sub = h('p', {class:'sub'}, h('span', {id:'cd'}, off ? `Street cleaning is off for the season. ${dur(next.start - now)} until it resumes.` : `That\u2019s ${dur(next.start - now)} from now.`));
+  }
+  const where = h('div', {class:'where'},
+    h('p', {class:'street'}, r.street),
+    h('p', {class:'meta'}, sideLabel(r.side)),
+    r.section ? h('p', {class:'meta'}, r.section) : null,
+    car.house ? h('p', {class:'meta'}, `Near #${car.house}`) : null);
+
+  const actions = h('div', {class:'actions'});
+  if(next && level !== 'now') actions.append(h('button', {class:'btn primary small', onClick:() => downloadIcs(car, next)}, 'Add reminder to calendar'));
+  actions.append(h('button', {class:'btn ghost small', onClick:() => openForm('update', car)}, 'I moved / update spot'));
+  const loc = car.lat != null ? `${car.lat},${car.lng}` : `${r.street}, Boston, MA`;
+  actions.append(h('a', {class:'btn ghost small', href:mapsLink(loc), target:'_blank', rel:'noopener noreferrer'}, 'Find my car on a map'));
+  const armed = state.removeArmed === car.id;
+  actions.append(h('button', {class:'btn ghost small', onClick:() => {
+    if(!armed){ state.removeArmed = car.id; render(); return; }
+    state.cars = state.cars.filter(c => c.id !== car.id); state.activeId = state.cars[0] ? state.cars[0].id : null;
+    state.removeArmed = null; state.selOpt = null; saveCars(); render();
+    if(!state.cars.length) openForm('new');
+  }}, armed ? 'Tap again to remove' : 'Remove car'));
+
+  return h('section', {class:`hero lvl-${level}`, 'aria-label':'Move deadline'},
+    h('div', {class:'hero-top'}, h('span', {class:'chip'}, chip), h('span', {class:'carname'}, `${car.name} \u00b7 parked ${ago(now - car.savedAt)}`)),
+    h('div', {class:'hero-body'}, head, sub,
+      car.notice ? h('p', {class:'warn', role:'status'}, car.notice + ' ', h('button', {class:'btn ghost small', onClick:() => { car.notice = ''; saveCars(); render(); }}, 'Got it')) : null,
+      h('div', {class:'hero-info'}, signEl(r), where), actions));
+}
+
+/* Top-down street cross-section. Odd side on top, even side on bottom. */
+function diagramEl(car, plan){
+  const r = car.rule, laneY = side => side === 'even' ? 207 : 63;
+  const sweptY = laneY(r.side);
+  const swapSel = state.selOpt === 'swap' && plan.swap && !plan.swap.conflict;
+  const fromY = laneY(r.side), toY = swapSel ? laneY(plan.swap.rule.side) : fromY;
+  const carBody = () => [
+    s('rect', {x:-62, y:-22, width:124, height:44, rx:14, fill:'#f4f2ec', stroke:'#14161a', 'stroke-width':2.5}),
+    s('rect', {x:-30, y:-16, width:56, height:32, rx:8, fill:'#6f8aa3', stroke:'#14161a', 'stroke-width':2}),
+    s('rect', {x:52, y:-17, width:7, height:9, rx:2, fill:'#f2c94c'}), s('rect', {x:52, y:8, width:7, height:9, rx:2, fill:'#f2c94c'}),
+    s('rect', {x:-59, y:-17, width:6, height:9, rx:2, fill:'#c1202d'}), s('rect', {x:-59, y:8, width:6, height:9, rx:2, fill:'#c1202d'})
+  ];
+  const neighbour = (cx, cy) => s('rect', {x:cx - 50, y:cy - 20, width:100, height:40, rx:12, fill:'#4a4f58'});
+  const carG = s('g', {class:'carg'}, carBody());
+  carG.style.transform = `translate(200px,${state.animate ? fromY : toY}px)`;
+  if(state.animate){
+    requestAnimationFrame(() => requestAnimationFrame(() => { carG.style.transform = `translate(200px,${toY}px)`; }));
+    state.animate = false;
+  }
+  const svg = s('svg', {viewBox:'0 0 640 270', role:'img',
+    'aria-label':`Street diagram. Your car is on the ${r.side} side, which is swept ${whenLabel(r)}.${swapSel ? ` Move it across to the ${plan.swap.rule.side} side.` : ''}`},
+    s('defs', null,
+      s('pattern', {id:'hatch', width:14, height:14, patternUnits:'userSpaceOnUse', patternTransform:'rotate(45)'}, s('rect', {width:7, height:14, fill:'#c1202d', opacity:.75})),
+      s('marker', {id:'arr', viewBox:'0 0 10 10', refX:7, refY:5, markerWidth:7, markerHeight:7, orient:'auto-start-reverse'}, s('path', {d:'M0 0 L10 5 L0 10 z', fill:'#fff'}))),
+    s('rect', {x:0, y:0, width:640, height:270, fill:'#2a2d32'}),
+    s('rect', {x:0, y:0, width:640, height:28, fill:'#cbc6b9'}),
+    s('rect', {x:0, y:242, width:640, height:28, fill:'#cbc6b9'}),
+    s('text', {x:12, y:21, 'font-size':19, 'font-weight':700, fill:'#1c1e22'}, 'Odd side (1, 3, 5\u2026)'),
+    s('text', {x:12, y:263, 'font-size':19, 'font-weight':700, fill:'#1c1e22'}, 'Even side (2, 4, 6\u2026)'),
+    s('rect', {x:0, y:28, width:640, height:70, fill:'#383c43'}),
+    s('rect', {x:0, y:172, width:640, height:70, fill:'#383c43'}),
+    s('line', {x1:0, y1:98, x2:640, y2:98, stroke:'#8d9199', 'stroke-width':2}),
+    s('line', {x1:0, y1:172, x2:640, y2:172, stroke:'#8d9199', 'stroke-width':2}),
+    s('line', {x1:0, y1:135, x2:640, y2:135, stroke:'#e8c23a', 'stroke-width':3, 'stroke-dasharray':'18 14'}),
+    neighbour(60, 63), neighbour(380, 63), neighbour(540, 63), neighbour(80, 207), neighbour(360, 207), neighbour(530, 207),
+    s('rect', {x:0, y:sweptY - 35, width:640, height:70, fill:'url(#hatch)', 'pointer-events':'none'}),
+    swapSel ? s('line', {x1:340, y1:fromY < toY ? fromY + 28 : fromY - 28, x2:340, y2:fromY < toY ? toY - 28 : toY + 28, stroke:'#fff', 'stroke-width':4, 'stroke-linecap':'round', 'marker-end':'url(#arr)'}) : null,
+    carG);
+  return h('section', {class:'diagram', 'aria-label':'Street diagram'}, svg,
+    h('div', {class:'legend'},
+      h('span', null, h('i', {class:'sw carsw'}), 'Your car'),
+      h('span', null, h('i', {class:'sw hatch'}), `Swept: ${r.side === 'both' ? 'both sides' : r.side + ' side'}, ${whenLabel(r)} ${clockLabel(r.start)}\u2013${clockLabel(r.end)}`)));
+}
+
+function optionEl(id, tag, title, bodyKids, actionKids){
+  const sel = state.selOpt === id;
+  return h('li', {class:'opt' + (sel ? ' sel' : '')}, h('h3', null, h('span', {class:'tag'}, tag), title), bodyKids, h('div', {class:'opt-actions'}, actionKids));
+}
+
+function planEl(car, plan){
+  const r = car.rule, {next, level, swap} = plan;
+  const sec = h('section', {class:'plan', 'aria-label':'Where to move'}, h('h2', null, 'Where to move'));
+  sec.append(h('p', {class:'from'}, h('strong', null, 'From: '), `${r.street}, ${r.side === 'both' ? 'both sides' : r.side + ' side'}${r.section ? ' (' + r.section + ')' : ''}`));
+  if(!next){ sec.append(h('p', {class:'note'}, 'Nothing to move for right now.')); return sec; }
+  const list = h('ul', {class:'opts'});
+
+  if(swap){
+    const o = swap.rule;
+    if(swap.conflict){
+      list.append(h('li', {class:'opt'}, h('h3', null, h('span', {class:'tag'}, 'Across the street'), `${r.street}, ${o.side} side`),
+        h('p', null, 'That side is swept right around the same time, so crossing over won\u2019t help. Try a nearby street instead.')));
+    } else {
+      const moveWhen = level === 'now' ? 'now' : `${fmtDay(next.start)} before ${fmtTime(next.start)}`;
+      const body = [
+        h('p', null, `Cross to the ${o.side} side ${level === 'now' ? 'now' : 'on ' + moveWhen}. `,
+          swap.clearUntil ? `It\u2019s clear until ${fmtDay(swap.clearUntil)} at ${fmtTime(swap.clearUntil)}, then you swap back.` : 'No sweeping is scheduled there.'),
+        swap.waitFor && level !== 'now' ? h('p', {class:'warn'}, `Don\u2019t cross early. The ${o.side} side is swept ${fmtDay(swap.waitFor.start)} at ${fmtTime(swap.waitFor.start)}.`) : null,
+        swap.inferred ? h('p', {class:'note'}, 'Based on the usual odd/even rotation. Confirm on the sign across the street.') : null
+      ];
+      const loc = car.lat != null ? `${car.lat},${car.lng}` : `${r.street}, Boston, MA`;
+      list.append(optionEl('swap', 'Across the street', `${r.street}, ${o.side} side`, body, [
+        h('button', {class:'btn small', onClick:() => { state.selOpt = 'swap'; state.animate = true; render(); }}, 'Show on diagram'),
+        h('a', {class:'btn ghost small', href:mapsLink(loc), target:'_blank', rel:'noopener noreferrer'}, 'Open in Maps'),
+        h('button', {class:'btn ghost small', onClick:() => markMoved(car, {rule:o, opp:{rule:r, inferred:false}, lat:car.lat, lng:car.lng})}, 'Mark as moved here')
+      ]));
+    }
+  }
+
+  const nb = state.nearby;
+  if(nb.carId === car.id && nb.status === 'done'){
+    nb.items.forEach((it, i) => {
+      const rr = it.rule, id = 'n' + i;
+      const q = it.lat != null ? `${it.lat},${it.lng}` : `${rr.street}, Boston, MA`;
+      list.append(optionEl(id, it.dist != null ? `${Math.round(it.dist)} m away` : 'Same area', `${rr.street}, ${rr.side === 'both' ? 'both sides' : rr.side + ' side'}`, [
+        h('p', null, it.safeUntil ? `Clear until ${fmtDay(it.safeUntil)} at ${fmtTime(it.safeUntil)}.` : 'No sweeping scheduled there.', rr.section ? ` Block: ${rr.section}.` : ''),
+        h('p', {class:'note'}, 'Schedules change block by block. Confirm on the posted sign.')
+      ], [
+        h('a', {class:'btn small', href:mapsLink(q), target:'_blank', rel:'noopener noreferrer'}, 'Open in Maps'),
+        h('button', {class:'btn ghost small', onClick:() => markMoved(car, {rule:rr, opp:null, lat:it.lat ?? null, lng:it.lng ?? null, recompute:true})}, 'Mark as moved here')
+      ]));
+    });
+  }
+  sec.append(list);
+
+  if(nb.carId === car.id && nb.status === 'done' && !nb.items.length) sec.append(h('p', {class:'note'}, nb.note || 'No nearby streets in the schedule data are clear through the sweep.'));
+  if(nb.carId === car.id && nb.status === 'error') sec.append(h('p', {class:'note'}, nb.note));
+  if(nb.carId === car.id && nb.note && nb.items.length) sec.append(h('p', {class:'note'}, nb.note));
+  sec.append(h('div', {class:'opt-actions'}, h('button', {class:'btn ghost small', disabled:nb.status === 'loading' && nb.carId === car.id,
+    onClick:() => findNearby(car)}, nb.status === 'loading' && nb.carId === car.id ? 'Looking\u2026' : 'Find clear streets nearby')));
+  return sec;
+}
+
+function datesEl(car, plan){
+  const now = new Date(), r = car.rule;
+  const row = o => h('li', null, h('span', null, `${fmtDay(o.start)} \u00b7 ${fmtTime(o.start)}\u2013${fmtTime(o.end)}`),
+    h('span', {class:'rel'}, o.start > now ? 'in ' + dur(o.start - now).split(',')[0] : 'now'));
+  const sec = h('section', {class:'dates', 'aria-label':'Upcoming sweeps'}, h('h2', null, 'Next sweeps'),
+    h('h3', null, `${r.side === 'both' ? 'Both sides' : r.side[0].toUpperCase() + r.side.slice(1) + ' side'} (your car)`),
+    plan.upcoming.length ? h('ul', null, plan.upcoming.map(row)) : h('p', {class:'note'}, 'None scheduled.'));
+  if(plan.swap && plan.swap.otherUpcoming.length){
+    const o = plan.swap.rule;
+    sec.append(h('h3', null, `${o.side[0].toUpperCase() + o.side.slice(1)} side${plan.swap.inferred ? ' (estimated)' : ''}`), h('ul', null, plan.swap.otherUpcoming.map(row)));
+  }
+  return sec;
+}
+
+function introEl(){
+  return h('section', {class:'intro', style:'grid-column:1/-1'},
+    signEl(mkRule({street:'Sample St', side:'odd', weeks:[1,3], days:[1], start:{h:8,m:0}, end:{h:12,m:0}})),
+    h('div', null,
+      h('h1', null, 'Know when to move your car, and where to.'),
+      h('p', null, 'Pin where you parked. Move By checks Boston\u2019s street cleaning schedule, counts down to the sweep, and shows which side of the street or which nearby street is safe.'),
+      h('button', {class:'btn primary', onClick:() => openForm('new')}, 'Park a car')));
+}
+
+const fmtISO = iso => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+const todayISO = () => new Date().toISOString().slice(0,10);
+
+async function onCsvPicked(e){
+  const input = e.target, file = input.files && input.files[0];
+  if(!file) return;
+  const say = (t, bad) => { state.importMsg = t; state.importBad = !!bad; state.importOpen = true; renderFoot(); };
+  try{
+    if(file.size > 8 * 1024 * 1024) throw new Error('That file is too big to be the City schedule (over 8 MB).');
+    say(`Reading ${file.name}\u2026`);
+    const recs = parseCSV(await file.text());
+    if(!recs.length || !('st_name' in recs[0]) || !('start_time' in recs[0]))
+      throw new Error('That doesn\u2019t look like the City\u2019s Street Sweeping Schedules CSV (the st_name and start_time columns are missing).');
+    const out = compileSchedule(recs);
+    if(out.problems.length) throw new Error('That file looks incomplete: ' + out.problems.join('; ') + '. Nothing was changed.');
+    if(state.asOf && out.asOf && out.asOf < state.asOf)
+      throw new Error(`That file is older (City data as of ${fmtISO(out.asOf)}) than the schedule already loaded (${fmtISO(state.asOf)}), so I kept the newer one.`);
+    const payload = {built:todayISO(), asOf:out.asOf, dists:out.dists, rows:out.rows};
+    const d = decodeBundle(payload);
+    const saved = await store.set('schedule-v1', JSON.stringify(payload));
+    applyData(d, 'import');
+    const alerts = state.cars.filter(c => c.notice).length;
+    say(`Loaded ${d.rules.length.toLocaleString()} sign rules, City data as of ${fmtISO(d.asOf) || 'unknown'}.`
+      + (alerts ? ` ${alerts === 1 ? 'A saved car has' : alerts + ' saved cars have'} a schedule change to review.` : '')
+      + (saved ? '' : ' It couldn\u2019t be saved for next time in this browser.'));
+  }catch(err){ say(err && err.message ? err.message : 'Couldn\u2019t read that file.', true); }
+  finally{ try{ input.value = ''; }catch(_){} }
+}
+function importEl(stale){
+  return h('details', {class:'import', open:(state.importOpen || stale) ? true : null, onToggle:ev => { state.importOpen = ev.target.open; }},
+    h('summary', null, 'Update the schedule from a CSV'),
+    h('ol', null,
+      h('li', null, 'Open the ', h('a', {href:'https://data.boston.gov/dataset/street-sweeping-schedules', target:'_blank', rel:'noopener noreferrer'}, 'City\u2019s Street Sweeping Schedules page'), ' and download the CSV.'),
+      h('li', null, h('label', {for:'csvFile'}, 'Choose the downloaded file:'))),
+    h('input', {type:'file', id:'csvFile', accept:'.csv,text/csv', onChange:onCsvPicked}),
+    h('p', {class:'msg' + (state.importBad ? ' bad' : ''), 'aria-live':'polite'}, state.importMsg));
+}
+function renderFoot(){
+  const f = $('foot'); f.replaceChildren();
+  const n = state.rules.length.toLocaleString();
+  const asOf = state.asOf ? `, City data as of ${fmtISO(state.asOf)}` : '';
+  const age = state.built ? Math.floor((Date.now() - new Date(state.built + 'T12:00:00')) / 864e5) : 0;
+  const stale = (state.source === 'bundle' || state.source === 'import') && age > 14;
+  let badge;
+  if(state.source === 'site' || state.source === 'live') badge = h('span', {class:'badge live'}, `Up to date: ${n} City of Boston sign rules${asOf}`);
+  else if(stale) badge = h('span', {class:'badge demo'}, `This schedule was loaded ${age} days ago (${n} rules${asOf}). ${state.refreshFailed ? 'Couldn\u2019t check for updates from here, so update it below.' : ''}`);
+  else if(state.source === 'import') badge = h('span', {class:'badge live'}, `Loaded from your CSV on ${fmtISO(state.built)}: ${n} sign rules${asOf}`);
+  else badge = h('span', {class:'badge live'}, `City of Boston schedule, ${n} sign rules (built ${fmtISO(state.built)}${asOf})`);
+  f.append(h('p', null, badge, state.checkedAt ? h('span', {class:'note'}, (state.refreshFailed
+      ? `  Tried to check for updates at ${new Date(state.checkedAt).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} but couldn\u2019t reach an update source, so this is the copy saved in the app.`
+      : `  Last checked for updates at ${new Date(state.checkedAt).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})}.`)) : null));
+  f.append(importEl(stale));
+  f.append(h('p', null, 'Always trust the posted sign over this app. The City suspends daytime sweeping on some holidays, which this app doesn\u2019t track yet, and streets cleaned every other week aren\u2019t enforced in a fifth week. Sweeping also depends on weather, and weekend night sweeping on some streets may not be in the City\u2019s table. Official lookup: ',
+    h('a', {href:'https://www.boston.gov/departments/public-works/street-sweeping', target:'_blank', rel:'noopener noreferrer'}, 'boston.gov street sweeping'), '.'));
+}
+
+function render(){
+  renderRail();
+  const view = $('view'); view.replaceChildren();
+  const car = activeCar();
+  if(!car){ view.append(introEl()); renderFoot(); return; }
+  const plan = computePlan(car, new Date());
+  view.append(h('div', {class:'col'}, heroEl(car, plan), diagramEl(car, plan)), h('div', {class:'col'}, planEl(car, plan), datesEl(car, plan)));
+  renderFoot();
+}
+
+/* ======================================================================
+   ACTIONS
+   ====================================================================== */
+function markMoved(car, to){
+  car.rule = to.rule;
+  car.opp = to.recompute ? (() => { const o = findOpposite(to.rule, state.index); return o ? {rule:o.rule, inferred:o.inferred} : null; })() : to.opp;
+  car.lat = to.lat ?? car.lat; car.lng = to.lng ?? car.lng; car.house = '';
+  car.savedAt = Date.now(); car.notice = ''; if(to.recompute) car.manual = false; state.selOpt = null; state.nearby = {carId:null, status:'idle', items:[], note:''};
+  saveCars(); render();
+}
+
+async function findNearby(car){
+  const now = new Date();
+  state.nearby = {carId:car.id, status:'loading', items:[], note:''}; render();
+  try{
+    if(car.lat == null) throw new Error('no-coords');
+    const streets = await nearbyStreets(car.lat, car.lng);
+    const items = evaluateNearby(car, streets, state.index, now);
+    state.nearby = {carId:car.id, status:'done', items,
+      note: items.length ? '' : 'None of the streets around you are in the schedule data with a clear window. Look for streets with different sweeping days.'};
+  }catch(e){
+    // Fallback: same neighbourhood, distance unknown
+    const d = car.rule.district;
+    const pool = d ? [...state.index.values()].filter(a => a[0].district === d).map(a => ({key:a[0].key, dist:null})) : [];
+    const items = evaluateNearby(car, pool, state.index, now);
+    state.nearby = {carId:car.id, status: items.length ? 'done' : 'error', items,
+      note: items.length ? 'Couldn\u2019t look up exact distances, so these are streets in the same neighbourhood. Check how far each is before you go.'
+        : (car.lat == null ? 'This car was added without GPS, so there\u2019s no position to search around. Use \u201cI moved / update spot\u201d with your location.' : 'Couldn\u2019t reach the map service to find nearby streets.')};
+  }
+  render();
+}
+
+function downloadIcs(car, next){
+  try{
+    const f = d => `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}T${p2(d.getHours())}${p2(d.getMinutes())}00`;
+    const esc = t => String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+    const begin = new Date(next.start.getTime() - 60 * 60000);
+    const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Move By//EN','BEGIN:VEVENT',
+      `UID:${uid()}@moveby`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`,
+      `DTSTART:${f(begin)}`, `DTEND:${f(next.start)}`,
+      `SUMMARY:${esc(`Move ${car.name} before street cleaning (${fmtTime(next.start)})`)}`,
+      `DESCRIPTION:${esc(`${car.rule.street}, ${car.rule.side} side. Swept ${fmtDay(next.start)} ${fmtTime(next.start)}\u2013${fmtTime(next.end)}.`)}`,
+      'BEGIN:VALARM','TRIGGER:-PT15M','ACTION:DISPLAY','DESCRIPTION:Move your car','END:VALARM','END:VEVENT','END:VCALENDAR'];
+    const url = URL.createObjectURL(new Blob([lines.join('\r\n')], {type:'text/calendar'}));
+    const a = h('a', {href:url, download:'move-your-car.ics'}); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }catch(e){ alert('Couldn\u2019t create the calendar file here. Set a phone reminder for ' + fmtDay(next.start) + ' at ' + fmtTime(new Date(next.start.getTime() - 3600000)) + '.'); }
+}
+
+/* ======================================================================
+   FORM: park a car / update a spot
+   ====================================================================== */
+const F = {street:'', side:null, section:'', lat:null, lng:null, house:'', manual:false};
+let formBuilt = false, R = {};   // R holds element refs
+
+function matches(){ return state.index.get(normStreet(F.street)) || []; }
+
+function buildForm(){
+  const root = $('formRoot'); root.replaceChildren();
+  R.title = h('h2', null, 'Park a car');
+  R.name = h('input', {type:'text', id:'fName', maxlength:24, autocomplete:'off', value:'My car'});
+  R.locBtn = h('button', {type:'button', class:'btn primary', onClick:useLocation}, 'Use my location');
+  R.locMsg = h('p', {class:'msg', 'aria-live':'polite'});
+  R.street = h('input', {type:'text', id:'fStreet', autocomplete:'off', placeholder:'e.g. Norfolk Ave', 'aria-autocomplete':'list', onInput:() => { F.street = R.street.value; F.side = F.side; refreshForm(true); }});
+  R.sugg = h('ul', {class:'sugg', hidden:true});
+  R.sideSeg = h('div', {class:'seg', role:'group', 'aria-label':'Side of the street'},
+    h('button', {type:'button', 'data-side':'odd', 'aria-pressed':'false', onClick:() => { F.side = 'odd'; refreshForm(); }}, 'Odd side'),
+    h('button', {type:'button', 'data-side':'even', 'aria-pressed':'false', onClick:() => { F.side = 'even'; refreshForm(); }}, 'Even side'));
+  R.sideField = h('div', {class:'field'}, h('span', {class:'lab', id:'sideLab'}, 'Which side of the street?'), R.sideSeg,
+    h('p', {class:'hint'}, 'Look at the door numbers on your side. 1, 3, 5\u2026 is odd; 2, 4, 6\u2026 is even.'));
+  R.sec = h('select', {id:'fSec', onChange:() => { F.section = R.sec.value; refreshForm(); }});
+  R.secField = h('div', {class:'field'}, h('label', {for:'fSec'}, 'Which sign matches your block?'), R.sec, h('p', {class:'hint'}, 'This street has more than one schedule. Pick the one on the sign nearest your car.'));
+  R.found = h('div', {class:'found', hidden:true, 'aria-live':'polite'});
+  R.miss = h('div', {class:'miss', hidden:true, 'aria-live':'polite'});
+  R.manualToggle = h('label', {class:'hint', style:'display:flex;gap:8px;align-items:center;min-height:44px'},
+    h('input', {type:'checkbox', onChange:e => { F.manual = e.target.checked; refreshForm(); }}), 'Enter the schedule from the sign instead');
+  R.weeks = [1,2,3,4,5].map(n => h('input', {type:'checkbox', value:String(n)}));
+  R.day = h('select', {id:'mDay'}, ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => h('option', {value:String(i)}, d)));
+  R.day.value = '1';
+  R.t1 = h('input', {type:'time', id:'mStart', value:'08:00'});
+  R.t2 = h('input', {type:'time', id:'mEnd', value:'12:00'});
+  R.season = h('select', {id:'mSeason'}, h('option', {value:'4-11'}, 'Apr 1 \u2013 Nov 30'), h('option', {value:'3-12'}, 'Mar 1 \u2013 Dec 31'), h('option', {value:'1-12'}, 'Year-round'));
+  R.manual = h('div', {class:'field', hidden:true},
+    h('div', {class:'field'}, h('span', {class:'lab'}, 'Which weeks of the month?'),
+      h('div', {class:'checks'}, R.weeks.map((cb, i) => h('label', null, cb, ORD[i + 1])))),
+    h('div', {class:'row'},
+      h('div', {class:'field'}, h('label', {for:'mDay'}, 'Day'), R.day),
+      h('div', {class:'field'}, h('label', {for:'mStart'}, 'From'), R.t1),
+      h('div', {class:'field'}, h('label', {for:'mEnd'}, 'Until'), R.t2),
+      h('div', {class:'field'}, h('label', {for:'mSeason'}, 'Season'), R.season)));
+  R.err = h('p', {class:'err', role:'alert'});
+  R.save = h('button', {type:'button', class:'btn primary', onClick:saveCar}, 'Save parked car');
+  R.cancel = h('button', {type:'button', class:'btn ghost', onClick:closeForm}, 'Cancel');
+
+  root.append(R.title,
+    h('div', {class:'field'}, h('label', {for:'fName'}, 'Car nickname'), R.name),
+    h('div', {class:'field'}, h('span', {class:'lab'}, 'Where are you parked?'), R.locBtn, R.locMsg),
+    h('div', {class:'field'}, h('label', {for:'fStreet'}, 'Street'), R.street, R.sugg),
+    R.sideField, R.secField, R.found, R.miss, R.manualToggle, R.manual, R.err,
+    h('div', {class:'actions'}, R.save, R.cancel));
+  formBuilt = true;
+}
+
+function updateSuggestions(){
+  const q = normStreet(F.street);
+  R.sugg.replaceChildren();
+  if(q.length < 2){ R.sugg.hidden = true; return; }
+  const list = state.names.filter(n => n.key.includes(q) && n.key !== q).sort((a, b) => (b.key.startsWith(q)) - (a.key.startsWith(q))).slice(0, 8);
+  if(!list.length){ R.sugg.hidden = true; return; }
+  for(const n of list){
+    R.sugg.append(h('li', null, h('button', {type:'button', onClick:() => { F.street = n.name; R.street.value = n.name; F.side = null; F.section = ''; refreshForm(); }},
+      n.name, n.district ? h('small', null, '  ' + n.district) : null)));
+  }
+  R.sugg.hidden = false;
+}
+
+function currentRuleFromForm(){
+  const m = matches();
+  const name = F.street.trim();
+  if(F.manual || !m.length){
+    const weeks = R.weeks.filter(c => c.checked).map(c => +c.value);
+    const start = parseClock(R.t1.value), end = parseClock(R.t2.value);
+    const [a, b] = R.season.value.split('-').map(Number);
+    if(!name) return {error:'Enter the street name.'};
+    if(!weeks.length) return {error:'Pick at least one week of the month.'};
+    if(!start || !end) return {error:'Enter the start and end times from the sign.'};
+    const side = F.side || 'both';
+    return {rule: sanitizeRule({street:name, side, section:'', district:m[0] ? m[0].district : '', weeks, days:[+R.day.value], start, end, season:[a, b]}) || null, error:null};
+  }
+  const sides = new Set(m.map(r => r.side));
+  const needSide = sides.has('odd') || sides.has('even');
+  if(needSide && !F.side) return {error:'Pick which side of the street you parked on.'};
+  const pool = poolFor();
+  if(!pool.length) return {error:`No ${F.side}-side schedule found for this street. Use the sign instead.`};
+  const rule = pool.find(r => ruleSig(r) === F.section) || pool[0];
+  return {rule, error:null};
+}
+/* Candidate sign rules for the street and side currently chosen in the form. */
+function poolFor(){
+  const m = matches();
+  const needSide = m.some(r => r.side === 'odd' || r.side === 'even');
+  const pool = needSide ? (F.side ? m.filter(r => r.side === F.side || r.side === 'both') : []) : m.slice();
+  return pool.sort((a, b) => (a.district + a.section).localeCompare(b.district + b.section) || ruleSig(a).localeCompare(ruleSig(b)));
+}
+
+function refreshForm(fromTyping){
+  const m = matches();
+  if(!fromTyping) { R.street.value = F.street; }
+  updateSuggestions();
+  const hasMatch = m.length > 0;
+  const sides = new Set(m.map(r => r.side));
+  const needSide = hasMatch && (sides.has('odd') || sides.has('even')) && !F.manual;
+  R.sideField.hidden = !(needSide || F.manual || (!hasMatch && F.street.trim().length > 1));
+  R.sideSeg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(F.side === b.dataset.side)));
+  // blocks
+  const pool = poolFor();
+  R.secField.hidden = !(hasMatch && !F.manual && pool.length > 1);
+  if(!R.secField.hidden){
+    R.sec.replaceChildren(...pool.map(r => h('option', {value:ruleSig(r)}, ruleLabel(r))));
+    if(!pool.some(r => ruleSig(r) === F.section)) F.section = ruleSig(pool[0]);
+    R.sec.value = F.section;
+  }
+  // preview
+  R.found.hidden = true; R.miss.hidden = true;
+  R.manual.hidden = !(F.manual || (!hasMatch && F.street.trim().length > 1));
+  R.manualToggle.hidden = !hasMatch;
+  if(!hasMatch && F.street.trim().length > 1){
+    R.miss.hidden = false;
+    R.miss.textContent = 'No city schedule found for that name. Check the spelling, or enter the schedule printed on the sign below.';
+  } else if(hasMatch && !F.manual){
+    const {rule, error} = currentRuleFromForm();
+    if(rule){
+      R.found.hidden = false;
+      R.found.textContent = `Found: ${whenLabel(rule)}, ${clockLabel(rule.start)}\u2013${clockLabel(rule.end)} \u00b7 ${seasonLabel(rule.season)}${rule.side !== 'both' ? ' \u00b7 ' + rule.side + ' side' : ''}`;
+    }
+  }
+  R.err.textContent = '';
+}
+
+function openForm(mode, car){
+  if(!formBuilt) buildForm();
+  state.formMode = mode; state.editId = car ? car.id : null;
+  Object.assign(F, {street:'', side:null, section:'', lat:null, lng:null, house:'', manual:false});
+  R.title.textContent = mode === 'update' ? `Update where ${car.name} is parked` : 'Park a car';
+  R.name.value = car ? car.name : (state.cars.length ? `Car ${state.cars.length + 1}` : 'My car');
+  R.name.disabled = false;
+  R.manualToggle.querySelector('input').checked = false;
+  R.weeks.forEach(c => { c.checked = false; });
+  R.locMsg.textContent = ''; R.err.textContent = '';
+  if(car){ F.street = car.rule.street; F.side = car.rule.side === 'both' ? null : car.rule.side; F.section = ruleSig(car.rule); }
+  R.cancel.hidden = !state.cars.length;
+  $('formRoot').hidden = false;
+  refreshForm();
+  $('formRoot').scrollIntoView({behavior:'smooth', block:'start'});
+  R.street.focus({preventScroll:true});
+}
+function closeForm(){ $('formRoot').hidden = true; }
+
+function setLoc(msg){ R.locMsg.textContent = msg; }
+async function useLocation(){
+  setLoc('Finding your position\u2026'); R.locBtn.disabled = true;
+  try{
+    let pos;
+    try{
+      pos = await new Promise((res, rej) => {
+        if(!navigator.geolocation) return rej({code:0});
+        navigator.geolocation.getCurrentPosition(res, rej, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
+      });
+    }catch(e){
+      setLoc(e && e.code === 1 ? 'Location access is blocked here. Allow it in your browser, or type the street below.' : 'Couldn\u2019t get a GPS fix. Type the street below instead.');
+      return;
+    }
+    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+    F.lat = lat; F.lng = lng;
+    if(!inBoston(lat, lng)){ setLoc('That position is outside Boston, so there\u2019s no city schedule. Type the street below if you\u2019re parked in Boston.'); return; }
+    let road = '', house = '';
+    try{
+      const j = await fetchJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${lat.toFixed(6)}&lon=${lng.toFixed(6)}`, {headers:{Accept:'application/json'}});
+      road = j && j.address && j.address.road ? String(j.address.road) : '';
+      house = j && j.address && j.address.house_number ? String(j.address.house_number) : '';
+    }catch(e){
+      setLoc('Got your GPS position but couldn\u2019t look up the street name. Type it below.'); return;
+    }
+    if(!road){ setLoc('Got your position but no street name came back. Type it below.'); return; }
+    const m = state.index.get(normStreet(road));
+    F.street = m ? m[0].street : road;
+    F.house = house.slice(0,12);
+    const n = parseInt(house, 10);
+    F.side = Number.isFinite(n) ? (n % 2 ? 'odd' : 'even') : null;
+    F.section = '';
+    const acc = accuracy > 40 ? ` GPS is only accurate to about ${Math.round(accuracy)} m, so double-check the side.` : '';
+    setLoc(`Nearest address: ${house ? house + ' ' : ''}${road}.${F.side ? ` That\u2019s the ${F.side} side.` : ' Pick your side below.'}${acc}`);
+    refreshForm();
+  } finally { R.locBtn.disabled = false; }
+}
+
+function saveCar(){
+  const {rule, error} = currentRuleFromForm();
+  if(error || !rule){ R.err.textContent = error || 'That schedule doesn\u2019t look right. Check the weeks, day, and times.'; return; }
+  const opp = findOpposite(rule, state.index);
+  const car = {
+    id: state.editId || uid(), name: (R.name.value.trim() || 'My car').slice(0,24),
+    rule, opp: opp ? {rule:opp.rule, inferred:opp.inferred} : null,
+    lat: F.lat, lng: F.lng, house: F.house, savedAt: Date.now(),
+    manual: F.manual || !matches().length, notice: ''
+  };
+  const i = state.cars.findIndex(c => c.id === car.id);
+  if(i >= 0){ if(car.lat == null){ car.lat = state.cars[i].lat; car.lng = state.cars[i].lng; } state.cars[i] = car; } else state.cars.push(car);
+  state.activeId = car.id; state.selOpt = null; state.nearby = {carId:null, status:'idle', items:[], note:''};
+  saveCars(); closeForm(); render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ======================================================================
+   BOOT
+   ====================================================================== */
+function setRules(rules, source){
+  state.rules = rules; state.source = source;
+  const {index, names} = buildIndex(rules); state.index = index; state.names = names;
+}
+let lastSig = '';
+function tick(){
+  const car = activeCar(); if(!car) return;
+  const now = new Date(), plan = computePlan(car, now);
+  const sig = plan.level + (plan.next ? plan.next.start.getTime() : '');
+  if(sig !== lastSig){ lastSig = sig; render(); return; }
+  const cd = $('cd');
+  if(cd && plan.next) cd.textContent = (plan.next.start - now) > 21 * 864e5
+    ? `Street cleaning is off for the season. ${dur(plan.next.start - now)} until it resumes.` : `That\u2019s ${dur(plan.next.start - now)} from now.`;
+}
+/* Compare saved cars with the current schedule and tell the person if the City changed their block. */
+function reconcileCars(){
+  let changed = false;
+  for(const c of state.cars){
+    if(c.manual) continue;
+    const r = c.rule;
+    const cand = (state.index.get(r.key) || []).filter(x => x.district === r.district && x.section === r.section && x.side === r.side);
+    if(cand.some(x => ruleSig(x) === ruleSig(r))){
+      const o = findOpposite(r, state.index); if(o && !o.inferred) c.opp = {rule:o.rule, inferred:false};
+      continue;
+    }
+    changed = true;
+    if(cand.length === 1){
+      c.rule = cand[0]; const o = findOpposite(c.rule, state.index); c.opp = o ? {rule:o.rule, inferred:o.inferred} : null;
+      c.notice = `The City changed the schedule for this block. It\u2019s now ${whenLabel(c.rule)}, ${clockLabel(c.rule.start)}\u2013${clockLabel(c.rule.end)}. Check the posted sign.`;
+    } else if(!cand.length){
+      c.notice = 'This block no longer appears in the City\u2019s schedule. Check the posted sign.';
+    } else {
+      c.notice = 'The City changed the schedule for this street. Tap \u201cI moved / update spot\u201d to pick the right sign.';
+    }
+  }
+  if(changed) saveCars();
+}
+function applyData(d, source){
+  setRules(d.rules, source); state.built = d.built; state.asOf = d.asOf;
+  reconcileCars();
+  render(); if(formBuilt && !$('formRoot').hidden) refreshForm();
+}
+async function refreshData(){
+  if(state.refreshing) return;
+  state.refreshing = true; state.refreshFailed = true;
+  for(const [source, load] of [['site', loadSite], ['live', loadLive]]){
+    try{
+      const d = await load();
+      if(d.rules.length < 1500) throw new Error('Incomplete schedule (' + d.rules.length + ' rules)');
+      if(d.asOf && state.asOf && d.asOf < state.asOf) throw new Error('Older than the schedule already loaded');
+      applyData(d, source); state.refreshFailed = false; break;
+    }catch(e){ console.info(`Schedule update from "${source}" unavailable:`, e && e.message); }
+  }
+  state.checkedAt = Date.now(); state.refreshing = false; renderFoot();
+}
+async function boot(){
+  const bundled = loadBundle();
+  let data = bundled, src = 'bundle';
+  try{                                   // a CSV the person imported earlier, if it is newer than the built-in copy
+    const raw = await store.get('schedule-v1');
+    if(raw){
+      const saved = decodeBundle(JSON.parse(raw));
+      if(saved.rules.length >= 1500 && (saved.asOf > bundled.asOf || (saved.asOf === bundled.asOf && saved.built >= bundled.built))){ data = saved; src = 'import'; }
+    }
+  }catch(e){ console.info('Ignoring unreadable saved schedule', e && e.message); }
+  setRules(data.rules, src); state.built = data.built; state.asOf = data.asOf;
+  state.cars = await loadCars();
+  state.activeId = state.cars[0] ? state.cars[0].id : null;
+  reconcileCars();                      // a car saved by an older copy of this page may be out of date
+  render();
+  if(!state.cars.length) openForm('new');
+  refreshData();
+  setInterval(refreshData, 6 * 3600 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && (!state.checkedAt || Date.now() - state.checkedAt > 3600 * 1000)) refreshData();
+  });
+  setInterval(tick, 30000);
+}
+boot();
+})();
+</script>
+</body>
+</html>
